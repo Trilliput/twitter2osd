@@ -19,7 +19,7 @@ class Twitter2osd:
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("logo.png") 
         self.statusicon.connect("popup-menu", self.right_click_event)
-        self.statusicon.set_tooltip("StatusIcon Example")
+        self.statusicon.set_tooltip("Twitter2OSD")
 
         self.titles = titles
         
