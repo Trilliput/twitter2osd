@@ -23,11 +23,16 @@ class Twitter2osd:
 
         self.titles = titles
         
+        self.path_base = os.path.abspath(os.path.dirname(__file__)) + "/"
+        self.path_cache = self.path_base + "cache/"
+        self.path_cached_avatars = self.path_cache + "avatars/"
+
         results = self.twitter_search(request = " OR ".join(self.titles), rpp = "1")
         self.max_id_str = results["max_id_str"]
         
         self.timer_id = gobject.timeout_add(60000, self.update_clock)
         
+    # TODO: make separated class with this methods.
     def twitter_search(self, request, since_id=None, page=None, rpp="10"):
         query = "http://search.twitter.com/search.json?q=" + urllib2.quote(request)
         if (since_id):
@@ -40,11 +45,25 @@ class Twitter2osd:
             return json.load(result)
             
     def notify_tweet(self, tweet, titles):
-        date, user, text = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text"]]
+        date, user, text, profile_image_url = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text","profile_image_url"]]
         for title in titles:
             if title in text:
                 break
-        os.system("notify-send --icon='/usr/share/gwibber/ui/icons/breakdance/scalable/twitter.svg' --expire-time=100 '{user} {date}:' '{text}'".format(**locals()))
+        os.system("notify-send --icon='{path_avatar}' --expire-time=100 '{user} {date}:' '{text}'".format(user=user, date=date, text= text, path_avatar=self.get_cached_avatar(user, profile_image_url)))
+
+    def get_cached_avatar (self, user_id, url):
+        # TODO: check if file is to old
+        if not os.path.isfile (self.path_cached_avatars + user_id):
+            if url == None:
+                pass
+                # TODO: get url from twitter api by {user_id}
+            downloaded_picture = urllib2.urlopen(url)
+            local_file = open(self.path_cached_avatars+user_id, "w")
+            local_file.write(downloaded_picture.read())
+
+        return self.path_cached_avatars + user_id
+        
+    # End separated block, which want to be a class... in future
     
         
     def right_click_event(self, icon, button, time):
