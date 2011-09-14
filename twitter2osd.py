@@ -11,6 +11,7 @@ import optparse
 import json
 from contextlib import closing
 import os
+import pipes
 import time
 import pprint
 
@@ -55,7 +56,10 @@ class Twitter2osd:
         for title in titles:
             if title in text:
                 break
-        os.system("notify-send --icon='{path_avatar}' --expire-time=100 '{user} {date}:' '{text}'".format(user=user, date=date, text= text, path_avatar=self.get_cached_avatar(user, profile_image_url)))
+        os.system("notify-send --icon={path_avatar} --expire-time=100 {notife_title} {text}".format(
+                    notife_title=pipes.quote(user + ' ' + date), 
+                    text=pipes.quote(text), 
+                    path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
 
     def get_cached_avatar (self, user_id, url):
         # TODO: check if file is to old
