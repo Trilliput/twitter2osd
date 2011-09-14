@@ -27,9 +27,6 @@ class Twitter2osd:
         self.max_id_str = results["max_id_str"]
         
         self.timer_id = gobject.timeout_add(60000, self.update_clock)
-        # self.window = gtk.Window()
-        # self.window.connect("destroy", lambda w: gtk.main_quit())
-        # self.window.show_all()
         
     def twitter_search(self, request, since_id=None, page=None, rpp="10"):
         query = "http://search.twitter.com/search.json?q=" + urllib2.quote(request)
