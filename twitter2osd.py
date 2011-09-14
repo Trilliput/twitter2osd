@@ -24,8 +24,14 @@ class Twitter2osd:
         self.titles = titles
         
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + "/"
+        
         self.path_cache = self.path_base + "cache/"
+        if not os.path.isdir(self.path_cache):
+            os.mkdir(self.path_cache)
+            
         self.path_cached_avatars = self.path_cache + "avatars/"
+        if not os.path.isdir(self.path_cached_avatars):
+            os.mkdir(self.path_cached_avatars)
 
         results = self.twitter_search(request = " OR ".join(self.titles), rpp = "1")
         self.max_id_str = results["max_id_str"]
