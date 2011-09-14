@@ -6,6 +6,8 @@ import gobject
 import time
 import signal
 
+import pynotify
+
 import urllib2
 import optparse
 import json
@@ -34,6 +36,8 @@ class Twitter2osd:
         if not os.path.isdir(self.path_cached_avatars):
             os.mkdir(self.path_cached_avatars)
 
+        pynotify.init("Twitter2OSD")
+        
         results = self.twitter_search(request = " OR ".join(self.titles), rpp = "1")
         self.max_id_str = results["max_id_str"]
         
@@ -56,10 +60,12 @@ class Twitter2osd:
         for title in titles:
             if title in text:
                 break
-        os.system("notify-send --icon={path_avatar} --expire-time=100 {notife_title} {text}".format(
-                    notife_title=pipes.quote(user + ' ' + date), 
-                    text=pipes.quote(text), 
-                    path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
+        # os.system("notify-send --icon={path_avatar} --expire-time=100 {notify_title} {text}".format(
+        #             notify_title=pipes.quote(user + ' ' + date), 
+        #             text=pipes.quote(text), 
+        #             path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
+        n = pynotify.Notification(user + " " + date, text, "file://" + self.get_cached_avatar(user, profile_image_url))
+        n.show()
 
     def get_cached_avatar (self, user_id, url):
         # TODO: check if file is to old
