@@ -84,27 +84,6 @@ class Twitter2osd:
     def on_window_delete_event(self, widget, event):
         gtk.main_quit()
 
-# if __name__ == "__main__":
-#     parser = optparse.OptionParser()
-#     (options, args) = parser.parse_args()
-# 
-#     titles = args
-# 
-#     pp = pprint.PrettyPrinter(indent=4)
-# 
-#     results = twitter_search(request = " OR ".join(titles), rpp = "1")
-#     max_id_str = results["max_id_str"]
-#     while True:
-#         new_results = twitter_search(request = " OR ".join(titles), since_id = max_id_str)
-#         max_id_str = new_results["max_id_str"]
-#         
-#         print unicode(len(new_results['results'])) + " new tweets found"
-#         for tweet in new_results["results"]:
-#             #print tweet['id']
-#             pp.pprint (tweet)
-#             notify_tweet(tweet, titles)
-#         time.sleep(60)
-
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
 
