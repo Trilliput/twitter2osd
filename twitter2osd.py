@@ -36,7 +36,7 @@ class Twitter2osd:
         
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 
-        self.statusicon.connect("popup-menu", self.right_click_event)
+        self.statusicon.connect("popup-menu", self.on_icon_right_click)
         self.statusicon.set_tooltip("Twitter2OSD")
 
         self.titles = titles
@@ -53,9 +53,9 @@ class Twitter2osd:
 
         pynotify.init("Twitter2OSD")
         
-        self.timer_id = gobject.timeout_add(60000, self.update_clock)
+        self.timer_id = gobject.timeout_add(60000, self.on_update_clock)
         
-    # TODO: make separated class with this methods.
+    # TODO: make separated class for twitter specific methods
     def twitter_search(self, request, since_id=None, page=None, rpp="10"):
         query = "http://search.twitter.com/search.json?q=" + urllib2.quote(request)
         if (since_id):
@@ -66,19 +66,6 @@ class Twitter2osd:
             query+="&rpp=" + urllib2.quote(rpp) 
         with closing(urllib2.urlopen(query)) as result:
             return json.load(result)
-            
-    def notify_tweet(self, tweet, titles):
-        date, user, text, profile_image_url = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text","profile_image_url"]]
-        for title in titles:
-            if title in text:
-                break
-        # os.system("notify-send --icon={path_avatar} --expire-time=100 {notify_title} {text}".format(
-        #             notify_title=pipes.quote(user + ' ' + date), 
-        #             text=pipes.quote(text), 
-        #             path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
-        n = pynotify.Notification(user + " " + date, text, "file://" + self.get_cached_avatar(user, profile_image_url))
-        n.set_timeout(self.notification_timeout)
-        n.show()
 
     def get_cached_avatar (self, user_id, url):
         # TODO: check if file is to old
@@ -91,8 +78,19 @@ class Twitter2osd:
             local_file.write(downloaded_picture.read())
 
         return self.path_cached_avatars + user_id
-        
-    # END separated block, which want to be a class... in future
+            
+    def notify_message(self, tweet, titles):
+        date, user, text, profile_image_url = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text","profile_image_url"]]
+        for title in titles:
+            if title in text:
+                break
+        # os.system("notify-send --icon={path_avatar} --expire-time=100 {notify_title} {text}".format(
+        #             notify_title=pipes.quote(user + ' ' + date), 
+        #             text=pipes.quote(text), 
+        #             path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
+        n = pynotify.Notification(user + " " + date, text, "file://" + self.get_cached_avatar(user, profile_image_url))
+        n.set_timeout(self.notification_timeout)
+        n.show()
 
     def enable(self):
         self.enabled = True
@@ -107,7 +105,7 @@ class Twitter2osd:
         self.timer_id = None
         
     # Events
-    def right_click_event(self, icon, button, time):
+    def on_icon_right_click(self, icon, button, time):
         menu = gtk.Menu()
 
         quit = gtk.MenuItem("Quit")
@@ -119,7 +117,7 @@ class Twitter2osd:
         
         menu.popup(None, None, gtk.status_icon_position_menu, button, time, self.statusicon)
 
-    def update_clock(self):
+    def on_update_clock(self):
         if self.timer_id is not None:
             new_results = None
             try:
@@ -143,12 +141,9 @@ class Twitter2osd:
                 self.max_id_str = new_results["max_id_str"]
                 for tweet in new_results["results"]:
                     pprint.pprint (object=tweet, indent=4) # DEBUG
-                    self.notify_tweet (tweet, self.titles)
+                    self.notify_message (tweet, self.titles)
             return True # run again in one second
         return False # stop running again
-
-    def on_window_delete_event(self, widget, event):
-        gtk.main_quit()
     # END Events
 
 if __name__ == '__main__':
