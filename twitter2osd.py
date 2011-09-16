@@ -6,7 +6,7 @@ try:
     import gobject
 except ImportError:
     print "Error: couldn't find gtk module. Please install it."
-    exit()
+    exit(1)
 
 try:
     import pynotify
@@ -16,7 +16,7 @@ except ImportError:
             buttons = gtk.BUTTONS_CLOSE, 
             type = gtk.MESSAGE_ERROR,
             message_format = "Couldn't find pynotify module. Please install it.").run()
-    exit()
+    exit(1)
 
 import urllib2
 import optparse
