@@ -1,12 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import gtk
-import gtk.glade
-import gobject
-import time
-import signal
+try:
+    import gtk
+    import gtk.glade
+    import gobject
+except ImportError:
+    print "Error: couldn't find gtk module. Please install it."
+    exit()
 
-import pynotify
+try:
+    import pynotify
+except ImportError:
+    print "Error: couldn't find pynotify module. Please install it."
+    gtk.MessageDialog(parent = None, 
+            buttons = gtk.BUTTONS_CLOSE, 
+            type = gtk.MESSAGE_ERROR,
+            message_format = "Couldn't find pynotify module. Please install it.").run()
+    exit()
 
 import urllib2
 import optparse
@@ -14,13 +24,14 @@ import json
 from contextlib import closing
 import os
 import pipes
+import signal
 import time
 import pprint
 
 class Twitter2osd:
     def __init__(self, titles):
         self.statusicon = gtk.StatusIcon()
-        self.statusicon.set_from_file("logo.png") 
+        self.statusicon.set_from_file("icon.png") 
         self.statusicon.connect("popup-menu", self.right_click_event)
         self.statusicon.set_tooltip("Twitter2OSD")
 
@@ -38,8 +49,8 @@ class Twitter2osd:
 
         pynotify.init("Twitter2OSD")
         
-        results = self.twitter_search(request = " OR ".join(self.titles), rpp = "1")
-        self.max_id_str = results["max_id_str"]
+        self.max_id_str = None
+        self.enabled = True
         
         self.timer_id = gobject.timeout_add(60000, self.update_clock)
         
@@ -79,9 +90,21 @@ class Twitter2osd:
 
         return self.path_cached_avatars + user_id
         
-    # End separated block, which want to be a class... in future
-    
+    # END separated block, which want to be a class... in future
+
+    def enable(self):
+        self.enabled = True
+        self.statusicon.set_from_file("icon.png") 
         
+    def disable(self):
+        self.enabled = False
+        self.statusicon.set_from_file("icon-warning.png") 
+    
+    def stop_timer(self, widget):
+        gobject.source_remove(self.timer_id)
+        self.timer_id = None
+        
+    # Events
     def right_click_event(self, icon, button, time):
         menu = gtk.Menu()
 
@@ -94,27 +117,37 @@ class Twitter2osd:
         
         menu.popup(None, None, gtk.status_icon_position_menu, button, time, self.statusicon)
 
-    def stop_timer(self, widget):
-        gobject.source_remove(self.timer_id)
-        self.timer_id = None
-        
     def update_clock(self):
         if self.timer_id is not None:
-            new_results = self.twitter_search(request = " OR ".join(self.titles), since_id = self.max_id_str)
-            self.max_id_str = new_results["max_id_str"]
+            new_results = None
+            try:
+                if (self.max_id_str == None):
+                    new_results = self.twitter_search(request = " OR ".join(self.titles), rpp = "1")
+                else:
+                    new_results = self.twitter_search(request = " OR ".join(self.titles), since_id = self.max_id_str)
+                if (not self.enabled):
+                    self.enable()
+            except urllib2.URLError, e:
+                if (self.enabled):
+                    self.disable()
+                print "Couldn't establish a connect." # DEBUG
+                
 
-            # DEBUG
-            print unicode(len(new_results['results'])) + " new tweets found"
+
             
-            for tweet in new_results["results"]:
-                # DEBUG
-                pprint.pprint (object=tweet, indent=4)
-                self.notify_tweet(tweet, self.titles)
+            if new_results != None:
+                print unicode(len(new_results['results'])) + " new tweets found" # DEBUG
+                
+                self.max_id_str = new_results["max_id_str"]
+                for tweet in new_results["results"]:
+                    pprint.pprint (object=tweet, indent=4) # DEBUG
+                    self.notify_tweet (tweet, self.titles)
             return True # run again in one second
         return False # stop running again
 
     def on_window_delete_event(self, widget, event):
         gtk.main_quit()
+    # END Events
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
