@@ -30,6 +30,10 @@ import pprint
 
 class Twitter2osd:
     def __init__(self, titles):
+        self.max_id_str = None
+        self.enabled = True
+        self.notification_timeout = 1000
+        
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 
         self.statusicon.connect("popup-menu", self.right_click_event)
@@ -48,9 +52,6 @@ class Twitter2osd:
             os.mkdir(self.path_cached_avatars)
 
         pynotify.init("Twitter2OSD")
-        
-        self.max_id_str = None
-        self.enabled = True
         
         self.timer_id = gobject.timeout_add(60000, self.update_clock)
         
@@ -76,6 +77,7 @@ class Twitter2osd:
         #             text=pipes.quote(text), 
         #             path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
         n = pynotify.Notification(user + " " + date, text, "file://" + self.get_cached_avatar(user, profile_image_url))
+        n.set_timeout(self.notification_timeout)
         n.show()
 
     def get_cached_avatar (self, user_id, url):
