@@ -55,6 +55,8 @@ class Twitter2osd:
         
         self.timer_id = gobject.timeout_add(60000, self.on_update_clock)
         
+    def main(self):
+        gtk.main()
     # TODO: make separated class for twitter specific methods
     def twitter_search(self, request, since_id=None, page=None, rpp="10"):
         query = "http://search.twitter.com/search.json?q=" + urllib2.quote(request)
@@ -160,8 +162,8 @@ if __name__ == '__main__':
 
     titles = args
     
-    Twitter2osd(titles)
-    gtk.main()
+    app = Twitter2osd(titles)
+    app.main()
     
 
 
