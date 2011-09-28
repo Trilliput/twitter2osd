@@ -18,18 +18,19 @@ except ImportError:
             message_format = "Couldn't find pynotify module. Please install it.").run()
     exit(1)
 
-import urllib2
-import optparse
-import json
 from contextlib import closing
+
+import json
+import optparse
 import os
+import pipes
+import pprint
+import shutil
+import signal
 import sys
 import tempfile
-import shutil
-import pipes
-import signal
 import time
-import pprint
+import urllib2
 
 class Twitter2osd:
     def __init__(self, titles):
