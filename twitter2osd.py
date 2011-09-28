@@ -23,6 +23,7 @@ import optparse
 import json
 from contextlib import closing
 import os
+import sys
 import tempfile
 import shutil
 import pipes
@@ -35,13 +36,14 @@ class Twitter2osd:
         self.max_id_str = None
         self.enabled = True
         self.notification_timeout = 1000
+        self.titles = titles
+        self.debug_mode = 1
         
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 
         self.statusicon.connect("popup-menu", self.on_icon_right_click)
         self.statusicon.set_tooltip("Twitter2OSD")
 
-        self.titles = titles
         
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + "/"
         self.path_cache = tempfile.mkdtemp()+"/"
@@ -56,10 +58,19 @@ class Twitter2osd:
     def main(self):
         try:
             gtk.main()
-        except:
-            self._cleanup()
+        except (KeyboardInterrupt, SystemExit):
             raise
-        self._cleanup()
+        except:
+            error_message = "Unexpected error. The script will be stopped."
+            if (self.debug_mode > 0):
+                error_message = str(sys.exc_info()[:2])
+            gtk.MessageDialog(parent = None, 
+                    buttons = gtk.BUTTONS_CLOSE, 
+                    type = gtk.MESSAGE_ERROR,
+                    message_format = error_message).run()
+            raise
+        finally:
+            self._cleanup()
         
     def _cleanup(self):
         if os.path.isdir(self.path_cache):
