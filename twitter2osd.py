@@ -23,6 +23,8 @@ import optparse
 import json
 from contextlib import closing
 import os
+import tempfile
+import shutil
 import pipes
 import signal
 import time
@@ -42,21 +44,27 @@ class Twitter2osd:
         self.titles = titles
         
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + "/"
-        
-        self.path_cache = self.path_base + "cache/"
-        if not os.path.isdir(self.path_cache):
-            os.mkdir(self.path_cache)
-            
+        self.path_cache = tempfile.mkdtemp()+"/"
         self.path_cached_avatars = self.path_cache + "avatars/"
         if not os.path.isdir(self.path_cached_avatars):
             os.mkdir(self.path_cached_avatars)
-
+        
         pynotify.init("Twitter2OSD")
         
         self.timer_id = gobject.timeout_add(60000, self.on_update_clock)
         
     def main(self):
-        gtk.main()
+        try:
+            gtk.main()
+        except:
+            self._cleanup()
+            raise
+        self._cleanup()
+        
+    def _cleanup(self):
+        if os.path.isdir(self.path_cache):
+            shutil.rmtree(self.path_cache)
+        
     # TODO: make separated class for twitter specific methods
     def twitter_search(self, request, since_id=None, page=None, rpp="10"):
         query = "http://search.twitter.com/search.json?q=" + urllib2.quote(request)
@@ -149,7 +157,7 @@ class Twitter2osd:
     # END Events
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, signal.SIG_DFL) # ^C exits the application
+    # signal.signal(signal.SIGINT, signal.SIG_DFL) #  exits the application
 
     # try:     # Import Psyco if available
     #     import psyco
