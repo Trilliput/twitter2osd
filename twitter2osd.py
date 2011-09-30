@@ -99,7 +99,7 @@ class Twitter2osd:
             self._cleanup()
         
 
-    def _drop_configs_to_defaults(self, fileobject):
+    def _drop_configs_to_defaults(self):
         self.config_parser.remove_section('Main') # Will not rais an exception if there is now Main section
         self.config_parser.add_section('Main')
         for key, value in self._default_config.items():
