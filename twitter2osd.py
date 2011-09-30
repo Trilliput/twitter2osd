@@ -69,7 +69,7 @@ class Twitter2osd:
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 
         self.statusicon.connect("popup-menu", self.on_icon_right_click)
-        self.statusicon.set_tooltip("Twitter2OSD")
+        self.statusicon.set_tooltip("Keywords to search: " + self.titles)
 
         
         self.path_cache = tempfile.mkdtemp()+"/"
