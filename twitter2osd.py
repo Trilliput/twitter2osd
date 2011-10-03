@@ -34,28 +34,32 @@ import time
 import urllib2
 
 class Twitter2osd:
-    default_config = {'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
+    DEFAULT_VARS = {'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
     
     def __init__(self):
         self.enabled = True
         self.max_id = None
         self.config_file_name = 'conf.cfg'
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + '/'
-        self.config_parser = SafeConfigParser()
-
+        self.configs = SafeConfigParser()
+        self.default_configs = SafeConfigParser()
+        
+        self.default_configs.add_section('Main')
+        for key, value in self.DEFAULT_VARS.items():
+            self.default_configs.set('Main', key, unicode(value))
 
         could_read = 0
         try:
-            could_read = len(self.config_parser.read(self.path_base + self.config_file_name))
+            could_read = len(self.configs.read(self.path_base + self.config_file_name))
         except IOError:
             print "IO Error during reading a config file." # DEBUG
             
         if (could_read == 0):
             print "Use default configs" # DEBUG
-            self.drop_configs_to_defaults()
+            self.configs = self.default_configs
             try:
                 with open(self.path_base + self.config_file_name, 'w+') as fo:
-                    self.config_parser.write(fo)
+                    self.configs.write(fo)
             except IOError:
                 print "IO Error during creating a config file." # DEBUG
                 print "System use default configuration" # DEBUG
@@ -63,7 +67,6 @@ class Twitter2osd:
             print "Found config file" # DEBUG
             
         self.take_configs()
-
 
         
         self.statusicon = gtk.StatusIcon()
@@ -99,27 +102,11 @@ class Twitter2osd:
             self.cleanup()
         
 
-    def drop_configs_to_defaults(self):
-        self.config_parser.remove_section('Main') # Will not rais an exception if there is now Main section
-        self.config_parser.add_section('Main')
-        for key, value in self.default_config.items():
-            self.config_parser.set('Main', key, unicode(value))
-    
     def take_configs(self):
-        try:
-            self.notification_timeout = int(self.config_parser.get('Main', 'notification_timeout'))
-        except NoOptionError:
-            self.notification_timeout = int(self.default_config['notification_timeout'])
-            
-        try:
-            self.titles = unicode(self.config_parser.get('Main', 'titles',))
-        except NoOptionError:
-            self.titles = unicode(self.default_config['titles'])
-            
-        try:
-            self.debug_mode = int(self.config_parser.get('Main', 'debug_mode',))
-        except NoOptionError:
-            self.debug_mode = int(self.default_config['debug_mode'])
+        config_vars = dict(self.configs.items('Main'))
+        self.notification_timeout = int(self.default_configs.get('Main', 'notification_timeout', vars=config_vars))
+        self.titles = unicode(self.default_configs.get('Main', 'titles', vars=config_vars))
+        self.debug_mode = int(self.default_configs.get('Main', 'debug_mode', vars=config_vars))
             
         print "Configs:"
         print "\tnotification_timeout = %d"%self.notification_timeout # DEBUG
