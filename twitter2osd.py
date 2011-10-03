@@ -34,7 +34,7 @@ import time
 import urllib2
 
 class Twitter2osd:
-    _default_config = {'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
+    default_config = {'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
     
     def __init__(self):
         self.enabled = True
@@ -52,7 +52,7 @@ class Twitter2osd:
             
         if (could_read == 0):
             print "Use default configs" # DEBUG
-            self._drop_configs_to_defaults()
+            self.drop_configs_to_defaults()
             try:
                 with open(self.path_base + self.config_file_name, 'w+') as fo:
                     self.config_parser.write(fo)
@@ -62,7 +62,7 @@ class Twitter2osd:
         else:
             print "Found config file" # DEBUG
             
-        self._take_configs()
+        self.take_configs()
 
 
         
@@ -96,41 +96,37 @@ class Twitter2osd:
                     message_format = error_message).run()
             raise
         finally:
-            self._cleanup()
+            self.cleanup()
         
 
-    def _drop_configs_to_defaults(self):
+    def drop_configs_to_defaults(self):
         self.config_parser.remove_section('Main') # Will not rais an exception if there is now Main section
         self.config_parser.add_section('Main')
-        for key, value in self._default_config.items():
+        for key, value in self.default_config.items():
             self.config_parser.set('Main', key, unicode(value))
     
-    def _take_configs(self):
+    def take_configs(self):
         try:
             self.notification_timeout = int(self.config_parser.get('Main', 'notification_timeout'))
         except NoOptionError:
-            self.notification_timeout = int(self._default_config['notification_timeout'])
+            self.notification_timeout = int(self.default_config['notification_timeout'])
             
         try:
             self.titles = unicode(self.config_parser.get('Main', 'titles',))
         except NoOptionError:
-            self.titles = unicode(self._default_config['titles'])
+            self.titles = unicode(self.default_config['titles'])
             
         try:
             self.debug_mode = int(self.config_parser.get('Main', 'debug_mode',))
         except NoOptionError:
-            self.debug_mode = int(self._default_config['debug_mode'])
+            self.debug_mode = int(self.default_config['debug_mode'])
             
         print "Configs:"
         print "\tnotification_timeout = %d"%self.notification_timeout # DEBUG
         print "\ttitles = %s"%self.titles # DEBUG
         print "\tdebug_mode = %d"%self.debug_mode # DEBUG
-
-    #def _load_configs_from_fileobject(self, fileobject):
-    #    self.config_parser.readfp(fileobject)
-        
     
-    def _cleanup(self):
+    def cleanup(self):
         if os.path.isdir(self.path_cache):
             shutil.rmtree(self.path_cache)
         
