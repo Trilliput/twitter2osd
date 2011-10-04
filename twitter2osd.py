@@ -41,32 +41,8 @@ class Twitter2osd:
         self.max_id = None
         self.config_file_name = 'conf.cfg'
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + '/'
-        self.configs = SafeConfigParser()
-        self.default_configs = SafeConfigParser()
-        
-        self.default_configs.add_section('Main')
-        for key, value in self.DEFAULT_VARS.items():
-            self.default_configs.set('Main', key, unicode(value))
-
-        could_read = 0
-        try:
-            could_read = len(self.configs.read(self.path_base + self.config_file_name))
-        except IOError:
-            print "IO Error during reading a config file." # DEBUG
             
-        if (could_read == 0):
-            print "Use default configs" # DEBUG
-            self.configs = self.default_configs
-            try:
-                with open(self.path_base + self.config_file_name, 'w+') as fo:
-                    self.configs.write(fo)
-            except IOError:
-                print "IO Error during creating a config file." # DEBUG
-                print "System use default configuration" # DEBUG
-        else:
-            print "Found config file" # DEBUG
-            
-        self.take_configs()
+        self.take_configs(True)
 
         
         self.statusicon = gtk.StatusIcon()
@@ -102,13 +78,37 @@ class Twitter2osd:
             self.cleanup()
         
 
-    def take_configs(self):
-        config_vars = dict(self.configs.items('Main'))
-        self.notification_timeout = int(self.default_configs.get('Main', 'notification_timeout', vars=config_vars))
-        self.titles = unicode(self.default_configs.get('Main', 'titles', vars=config_vars))
-        self.debug_mode = int(self.default_configs.get('Main', 'debug_mode', vars=config_vars))
+    def take_configs(self, create_default_file = True):
+        self.configs = SafeConfigParser()
+        
+        self.configs.add_section('Main')
+        for key, value in self.DEFAULT_VARS.items():
+            self.configs.set('Main', key, unicode(value))
+
+        could_read = 0
+        try:
+            could_read = len(self.configs.read(self.path_base + self.config_file_name))
+        except IOError:
+            print "IO Error during reading a config file." # DEBUG
             
-        print "Configs:"
+        if (could_read == 0):
+            print "Will be used the default settings" # DEBUG
+            if (create_default_file):
+                try:
+                    with open(self.path_base + self.config_file_name, 'w+') as fo:
+                        self.configs.write(fo)
+                        print "Created a default config file" # DEBUG
+                except IOError:
+                    print "IO Error during creating a config file." # DEBUG
+                    print "System will use default configuration" # DEBUG
+        else:
+            print "Found config file" # DEBUG
+        config_vars = dict(self.configs.items('Main'))
+        self.notification_timeout = int(self.configs.get('Main', 'notification_timeout'))
+        self.titles = unicode(self.configs.get('Main', 'titles'))
+        self.debug_mode = int(self.configs.get('Main', 'debug_mode'))
+            
+        print "Configs:" # DEBUG
         print "\tnotification_timeout = %d"%self.notification_timeout # DEBUG
         print "\ttitles = %s"%self.titles # DEBUG
         print "\tdebug_mode = %d"%self.debug_mode # DEBUG
