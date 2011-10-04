@@ -38,7 +38,7 @@ class Twitter2osd:
     
     def __init__(self):
         self.enabled = True
-        self.max_id = None
+        self.max_id = None # used to check what tweets are new
         self.config_file_name = 'conf.cfg'
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + '/'
             
@@ -61,6 +61,9 @@ class Twitter2osd:
         self.timer_id = gobject.timeout_add(60000, self.on_update_clock)
         
     def main(self):
+        """Run main gtk loop and catch all excoption during the loop. 
+        Should be called after the object initialization to run the script
+        """
         try:
             gtk.main()
         except (KeyboardInterrupt, SystemExit):
@@ -79,6 +82,14 @@ class Twitter2osd:
         
 
     def take_configs(self, create_default_file = True):
+        """Load a config file and assign needed parameters with loaded from the file values or from the defaults.
+        Create default config file if create_default_file argument passed and there is no config file.
+
+        Prameters which will be assign:
+        self.notification_timeout 
+        self.titles 
+        self.debug_mode 
+        """
         self.configs = SafeConfigParser()
         
         self.configs.add_section('Main')
@@ -114,11 +125,20 @@ class Twitter2osd:
         print "\tdebug_mode = %d"%self.debug_mode # DEBUG
     
     def cleanup(self):
+        """Remove cache directory and all contents"""
         if os.path.isdir(self.path_cache):
             shutil.rmtree(self.path_cache)
         
     # TODO: make separated class for twitter specific methods
     def twitter_search(self, request, since_id=None, page=None, rpp="10"):
+        """Search tweets by criteria. Return found tweets in json
+
+        Keyword arguments:
+        request     -- the request string whick for twitter API.
+        since_id    -- result will contain items with id greater than since_id
+        page        -- page number
+        rpp         -- results per page
+        """
         query = "http://search.twitter.com/search.json?q=" + urllib2.quote(request)
         if (since_id):
             query+="&since_id=" + urllib2.quote(since_id) 
@@ -130,6 +150,7 @@ class Twitter2osd:
             return json.load(result)
 
     def get_cached_avatar (self, user_id, url):
+        """Download user avatar if necessary. Return path to the downloaded avatar"""
         # TODO: check if file is to old
         if not os.path.isfile (self.path_cached_avatars + user_id):
             if url == None:
@@ -142,6 +163,13 @@ class Twitter2osd:
         return self.path_cached_avatars + user_id
             
     def notify_message(self, tweet):
+        """Show message with user picture using pynotify module
+
+        tweet['created_at']         -- creation date
+        tweet['from_user']          -- author name
+        tweet['text']               -- message text
+        tweet['profile_image_url']  -- profile image url. Will be downleaded to the cache directory
+        """
         date, user, text, profile_image_url = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text","profile_image_url"]]
         # os.system("notify-send --icon={path_avatar} --expire-time=100 {notify_title} {text}".format(
         #             notify_title=pipes.quote(user + ' ' + date), 
@@ -151,20 +179,24 @@ class Twitter2osd:
         n.set_timeout(self.notification_timeout)
         n.show()
 
-    def enable(self):
-        self.enabled = True
-        self.statusicon.set_from_file("icon.png") 
-        
     def disable(self):
+        """Disable main functionalit of the application"""
         self.enabled = False
         self.statusicon.set_from_file("icon-warning.png") 
     
+    def enable(self):
+        """Enable application"""
+        self.enabled = True
+        self.statusicon.set_from_file("icon.png") 
+        
     def stop_timer(self, widget):
+        """Stop timer and as result stop fetching new messages"""
         gobject.source_remove(self.timer_id)
         self.timer_id = None
         
     # Events
     def on_icon_right_click(self, icon, button, time):
+        """The status icon right mouse click event"""
         menu = gtk.Menu()
 
         quit = gtk.MenuItem("Quit")
@@ -177,6 +209,10 @@ class Twitter2osd:
         menu.popup(None, None, gtk.status_icon_position_menu, button, time, self.statusicon)
 
     def on_update_clock(self):
+        """The periodically called function. 
+        Fetch new messegs and call notify_message to immediately show all fetched messages. 
+        The delay between messages carried out by notify_message method (TODO: need make a queue instead).
+        """
         if self.timer_id is not None:
             new_results = None
             try:
