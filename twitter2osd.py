@@ -34,12 +34,13 @@ import time
 import urllib2
 
 class Twitter2osd:
-    DEFAULT_VARS = {'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
+    DEFAULT_VARS = {'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
     
     def __init__(self):
+        self.config_file_name = 'conf.cfg'
         self.enabled = True
         self.max_id = None # used to check what tweets are new
-        self.config_file_name = 'conf.cfg'
+        self.messages_queue = []
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + '/'
             
         self.take_configs(True)
@@ -58,7 +59,8 @@ class Twitter2osd:
         
         pynotify.init("Twitter2OSD")
         
-        self.timer_id = gobject.timeout_add(60000, self.on_update_clock)
+        self.fetching_timer_id = gobject.timeout_add(60000, self.fetch_messages)
+        self.show_message_timer_id = gobject.timeout_add(self.show_message_interval, self.show_next_message)
         
     def main(self):
         """Run main gtk loop and catch all excoption during the loop. 
@@ -87,6 +89,7 @@ class Twitter2osd:
 
         Prameters which will be assign:
         self.notification_timeout 
+        self.show_message_interval
         self.titles 
         self.debug_mode 
         """
@@ -116,11 +119,13 @@ class Twitter2osd:
             print "Found config file" # DEBUG
         config_vars = dict(self.configs.items('Main'))
         self.notification_timeout = int(self.configs.get('Main', 'notification_timeout'))
+        self.show_message_interval = int(self.configs.get('Main', 'show_message_interval'))*1000
         self.titles = unicode(self.configs.get('Main', 'titles'))
         self.debug_mode = int(self.configs.get('Main', 'debug_mode'))
             
         print "Configs:" # DEBUG
         print "\tnotification_timeout = %d"%self.notification_timeout # DEBUG
+        print "\tshow_message_interval = %d"%self.show_message_interval # DEBUG
         print "\ttitles = %s"%self.titles # DEBUG
         print "\tdebug_mode = %d"%self.debug_mode # DEBUG
     
@@ -189,10 +194,15 @@ class Twitter2osd:
         self.enabled = True
         self.statusicon.set_from_file("icon.png") 
         
-    def stop_timer(self, widget):
-        """Stop timer and as result stop fetching new messages"""
-        gobject.source_remove(self.timer_id)
-        self.timer_id = None
+    def stop_fetching(self):
+        """Stop Fetching timer and as result stop fetching new messages"""
+        gobject.source_remove(self.fetching_timer_id)
+        self.fetching_timer_id = None
+        
+    def stop_showing_messages(self):
+        """Stop Show Message timer and as result stop showing messages from the queue"""
+        gobject.source_remove(self.show_message_timer_id)
+        self.show_message_timer_id = None
         
     # Events
     def on_icon_right_click(self, icon, button, time):
@@ -208,12 +218,11 @@ class Twitter2osd:
         
         menu.popup(None, None, gtk.status_icon_position_menu, button, time, self.statusicon)
 
-    def on_update_clock(self):
+    def fetch_messages(self):
         """The periodically called function. 
-        Fetch new messegs and call notify_message to immediately show all fetched messages. 
-        The delay between messages carried out by notify_message method (TODO: need make a queue instead).
+        Fetch new messegs and store them to the messages_queue parameter. 
         """
-        if self.timer_id is not None:
+        if self.fetching_timer_id is not None:
             new_results = None
             try:
                 if (self.max_id == None):
@@ -225,20 +234,27 @@ class Twitter2osd:
             except urllib2.URLError, e:
                 if (self.enabled):
                     self.disable()
-                print "Couldn't establish a connect." # DEBUG
-                
-
+                print "Couldn't establish a connection." # DEBUG
 
             
             if new_results != None:
                 print unicode(len(new_results['results'])) + " new tweets found" # DEBUG
                 
                 self.max_id = new_results["max_id_str"]
-                for tweet in new_results["results"]:
-                    pprint.pprint (object=tweet, indent=4) # DEBUG
-                    self.notify_message (tweet)
-            return True # run again in one second
+                self.messages_queue.extend(new_results['results']) 
+            return True # run again
         return False # stop running again
+
+    def show_next_message(self):
+        """The periodically called function. Show one next message from the queue"""
+        if self.show_message_timer_id is not None:
+            if len(self.messages_queue) > 0:
+                msg = self.messages_queue.pop(0)
+                pprint.pprint (object=msg, indent=4) # DEBUG
+                self.notify_message (msg)
+            return True # run again
+        return False # stop running again
+        
     # END Events
 
 if __name__ == '__main__':
