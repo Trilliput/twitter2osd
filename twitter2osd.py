@@ -28,6 +28,7 @@ import pipes
 import pprint
 import shutil
 import signal
+import socket
 import sys
 import tempfile
 import time
@@ -154,16 +155,22 @@ class Twitter2osd:
         with closing(urllib2.urlopen(query)) as result:
             return json.load(result)
 
-    def get_cached_avatar (self, user_id, url):
+    def get_cached_avatar (self, user_id, url, download_if_necessary = False):
         """Download user avatar if necessary. Return path to the downloaded avatar"""
         # TODO: check if file is to old
         if not os.path.isfile (self.path_cached_avatars + user_id):
-            if url == None:
-                pass
-                # TODO: get url from twitter api by {user_id}
-            downloaded_picture = urllib2.urlopen(url)
-            local_file = open(self.path_cached_avatars+user_id, "w")
-            local_file.write(downloaded_picture.read())
+            if (download_if_necessary):
+                if url == None:
+                    pass
+                    # TODO: get url from twitter api by {user_id}
+                try:
+                    downloaded_picture = urllib2.urlopen(url)
+                    local_file = open(self.path_cached_avatars+user_id, "w")
+                    local_file.write(downloaded_picture.read())
+                except socket.error, e:
+                    return ''
+            else:
+                raise IOError('Avatar {user_id} not found in path {path}'.format(user_id = user_id, path = self.path_cached_avatars))
 
         return self.path_cached_avatars + user_id
             
@@ -175,12 +182,14 @@ class Twitter2osd:
         tweet['text']               -- message text
         tweet['profile_image_url']  -- profile image url. Will be downleaded to the cache directory
         """
-        date, user, text, profile_image_url = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text","profile_image_url"]]
+        date, user, text, cached_avatar_path = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text", "cached_avatar_path"]]
         # os.system("notify-send --icon={path_avatar} --expire-time=100 {notify_title} {text}".format(
         #             notify_title=pipes.quote(user + ' ' + date), 
         #             text=pipes.quote(text), 
         #             path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
-        n = pynotify.Notification(user + " " + date, text, "file://" + self.get_cached_avatar(user, profile_image_url))
+        if cached_avatar_path:
+            cached_avatar_path = 'file://' + cached_avatar_path
+        n = pynotify.Notification(user + ' ' + date, text, cached_avatar_path)
         n.set_timeout(self.notification_timeout)
         n.show()
 
@@ -229,12 +238,15 @@ class Twitter2osd:
                     new_results = self.twitter_search(request = self.titles.replace(' ', ' OR '), rpp = "1")
                 else:
                     new_results = self.twitter_search(request = self.titles.replace(' ', ' OR '), since_id = self.max_id)
+                for tweet in new_results['results']:
+                    tweet['cached_avatar_path'] = self.get_cached_avatar(tweet['from_user'], tweet['profile_image_url'], True)
                 if (not self.enabled):
                     self.enable()
             except urllib2.URLError, e:
                 if (self.enabled):
                     self.disable()
                 print "Couldn't establish a connection." # DEBUG
+                print u"Exception details: " + unicode(e) # DEBUG
 
             
             if new_results != None:
