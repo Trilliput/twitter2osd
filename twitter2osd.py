@@ -119,7 +119,7 @@ class Twitter2osd:
             print "Found config file" # DEBUG
         config_vars = dict(self.configs.items('Main'))
         self.notification_timeout = int(self.configs.get('Main', 'notification_timeout'))
-        self.show_message_interval = int(self.configs.get('Main', 'show_message_interval'))*1000
+        self.show_message_interval = int(self.configs.get('Main', 'show_message_interval'))
         self.titles = unicode(self.configs.get('Main', 'titles'))
         self.debug_mode = int(self.configs.get('Main', 'debug_mode'))
             
