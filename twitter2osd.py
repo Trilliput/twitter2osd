@@ -26,6 +26,7 @@ import optparse
 import os
 import pipes
 import pprint
+import re
 import shutil
 import signal
 import socket
@@ -36,6 +37,7 @@ import urllib2
 
 class Twitter2osd:
     DEFAULT_VARS = {'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
+    urlFinderRe = re.compile(r"""http://[^ ]*""")
     
     def __init__(self):
         self.config_file_name = 'conf.cfg'
@@ -187,6 +189,7 @@ class Twitter2osd:
         #             notify_title=pipes.quote(user + ' ' + date), 
         #             text=pipes.quote(text), 
         #             path_avatar=pipes.quote(self.get_cached_avatar(user, profile_image_url))))
+        text = self.urlFinderRe.sub(lambda m: '<a href="{url}">{url}</a>'.format(url = m.group(0)), text)
         if cached_avatar_path:
             cached_avatar_path = 'file://' + cached_avatar_path
         n = pynotify.Notification(user + ' ' + date, text, cached_avatar_path)
