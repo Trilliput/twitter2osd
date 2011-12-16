@@ -61,6 +61,7 @@ class Twitter2osd:
         pynotify.init("Twitter2OSD")
         
         self.fetching_timer_id = gobject.timeout_add(60000, self.fetch_messages)
+        # TODO:  first argument shoulb be self.show_message_interval + self.notification_timeout
         self.show_message_timer_id = gobject.timeout_add(self.show_message_interval, self.show_next_message)
         
     def main(self):
