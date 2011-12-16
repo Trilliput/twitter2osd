@@ -1,6 +1,6 @@
 import engines
 
-class enginesManager (object):
+class EnginesManager (object):
     def __init__ (self, engine_names, titles, configs_per_engine = {}):
         self._engines = []
         for eng in engine_names:

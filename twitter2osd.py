@@ -20,7 +20,6 @@ except ImportError:
 
 from contextlib import closing
 from ConfigParser import SafeConfigParser, NoOptionError
-from msg_grabber import enginesManager
 
 import json
 import optparse
@@ -35,9 +34,11 @@ import tempfile
 import time
 import urllib2
 
+from microfetch import EnginesManager
+
 class Twitter2osd:
     DEFAULT_CONFIGS = {
-            'Main':{'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python', 'engines':'test'},
+            'Main':{'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python', 'engines':'Test'},
             'Test':{'tittles':'testtitle'}}
     
     def __init__(self):
@@ -51,7 +52,7 @@ class Twitter2osd:
 
         self.path_cache = tempfile.mkdtemp()+"/"
 
-        self.grab_engines = enginesManager(self.engines, self.titles)
+        self.grab_engines = EnginesManager(self.engines, self.titles)
         
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 

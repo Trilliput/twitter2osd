@@ -1,6 +1,6 @@
-from . import abstractEngine
+from . import _AbstractEngine
 
-class testEngine (abstractEngine):
+class TestEngine (_AbstractEngine):
     def fetch_messages (self):
         """generate list of test messages
 

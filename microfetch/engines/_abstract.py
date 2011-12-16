@@ -1,5 +1,5 @@
 
-class abstractEngine (object):
+class _AbstractEngine (object):
     def __init__ (self, configs):
         self._titles = configs['titles']
 
