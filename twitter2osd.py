@@ -20,6 +20,7 @@ except ImportError:
 
 from contextlib import closing
 from ConfigParser import SafeConfigParser, NoOptionError
+from msg_grabber import enginesManager
 
 import json
 import optparse
@@ -35,7 +36,9 @@ import time
 import urllib2
 
 class Twitter2osd:
-    DEFAULT_VARS = {'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python'}
+    DEFAULT_CONFIGS = {
+            'Main':{'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python', 'engines':'test'},
+            'Test':{'tittles':'testtitle'}}
     
     def __init__(self):
         self.config_file_name = 'conf.cfg'
@@ -46,17 +49,16 @@ class Twitter2osd:
             
         self.take_configs(True)
 
+        self.path_cache = tempfile.mkdtemp()+"/"
+
+        self.grab_engines = enginesManager(self.engines, self.titles)
         
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 
         self.statusicon.connect("popup-menu", self.on_icon_right_click)
-        self.statusicon.set_tooltip("Keywords to search: " + self.titles)
+        self.statusicon.set_tooltip("Keywords to search: " + ' '.join(self.titles))
 
         
-        self.path_cache = tempfile.mkdtemp()+"/"
-        self.path_cached_avatars = self.path_cache + "avatars/"
-        if not os.path.isdir(self.path_cached_avatars):
-            os.mkdir(self.path_cached_avatars)
         
         pynotify.init("Twitter2OSD")
         
@@ -89,6 +91,7 @@ class Twitter2osd:
         Create default config file if create_default_file argument passed and there is no config file.
 
         Prameters which will be assign:
+        self.engines
         self.notification_timeout 
         self.show_message_interval
         self.titles 
@@ -96,9 +99,10 @@ class Twitter2osd:
         """
         self.configs = SafeConfigParser()
         
-        self.configs.add_section('Main')
-        for key, value in self.DEFAULT_VARS.items():
-            self.configs.set('Main', key, unicode(value))
+        for section_name, dir_content in self.DEFAULT_CONFIGS.items():
+            self.configs.add_section(section_name)
+            for key, value in dir_content.items():
+                self.configs.set(section_name, key, unicode(value))
 
         could_read = 0
         try:
@@ -121,13 +125,14 @@ class Twitter2osd:
         config_vars = dict(self.configs.items('Main'))
         self.notification_timeout = int(self.configs.get('Main', 'notification_timeout'))
         self.show_message_interval = int(self.configs.get('Main', 'show_message_interval'))
-        self.titles = unicode(self.configs.get('Main', 'titles'))
+        self.titles = set(self.configs.get('Main', 'titles').split(' '))
         self.debug_mode = int(self.configs.get('Main', 'debug_mode'))
+        self.engines = self.configs.get('Main', 'engines').split(' ')
             
         print "Configs:" # DEBUG
         print "\tnotification_timeout = %d"%self.notification_timeout # DEBUG
         print "\tshow_message_interval = %d"%self.show_message_interval # DEBUG
-        print "\ttitles = %s"%self.titles # DEBUG
+        print "\ttitles = %s"%' '.join(self.titles) # DEBUG
         print "\tdebug_mode = %d"%self.debug_mode # DEBUG
     
     def cleanup(self):
@@ -135,45 +140,6 @@ class Twitter2osd:
         if os.path.isdir(self.path_cache):
             shutil.rmtree(self.path_cache)
         
-    # TODO: make separated class for twitter specific methods
-    def twitter_search(self, request, since_id=None, page=None, rpp="10"):
-        """Search tweets by criteria. Return found tweets in json
-
-        Keyword arguments:
-        request     -- the request string whick for twitter API.
-        since_id    -- result will contain items with id greater than since_id
-        page        -- page number
-        rpp         -- results per page
-        """
-        query = "http://search.twitter.com/search.json?q=" + urllib2.quote(request)
-        if (since_id):
-            query+="&since_id=" + urllib2.quote(since_id) 
-        if (page):
-            query+="&page=" + urllib2.quote(page) 
-        if (rpp):
-            query+="&rpp=" + urllib2.quote(rpp) 
-        with closing(urllib2.urlopen(query)) as result:
-            return json.load(result)
-
-    def get_cached_avatar (self, user_id, url, download_if_necessary = False):
-        """Download user avatar if necessary. Return path to the downloaded avatar"""
-        # TODO: check if file is to old
-        if not os.path.isfile (self.path_cached_avatars + user_id):
-            if (download_if_necessary):
-                if url == None:
-                    pass
-                    # TODO: get url from twitter api by {user_id}
-                try:
-                    downloaded_picture = urllib2.urlopen(url)
-                    local_file = open(self.path_cached_avatars+user_id, "w")
-                    local_file.write(downloaded_picture.read())
-                except socket.error, e:
-                    return ''
-            else:
-                raise IOError('Avatar {user_id} not found in path {path}'.format(user_id = user_id, path = self.path_cached_avatars))
-
-        return self.path_cached_avatars + user_id
-            
     def notify_message(self, tweet):
         """Show message with user picture using pynotify module
 
@@ -182,7 +148,7 @@ class Twitter2osd:
         tweet['text']               -- message text
         tweet['profile_image_url']  -- profile image url. Will be downleaded to the cache directory
         """
-        date, user, text, cached_avatar_path = [tweet[x].encode("utf8") for x in ["created_at", "from_user", "text", "cached_avatar_path"]]
+        date, user, text, cached_avatar_path = [(tweet.get(x) or "").encode("utf8") for x in ["created_at", "from_user", "text", "cached_avatar_path"]]
         # os.system("notify-send --icon={path_avatar} --expire-time=100 {notify_title} {text}".format(
         #             notify_title=pipes.quote(user + ' ' + date), 
         #             text=pipes.quote(text), 
@@ -234,14 +200,7 @@ class Twitter2osd:
         if self.fetching_timer_id is not None:
             new_results = None
             try:
-                if (self.max_id == None):
-                    new_results = self.twitter_search(request = self.titles.replace(' ', ' OR '), rpp = "1")
-                else:
-                    new_results = self.twitter_search(request = self.titles.replace(' ', ' OR '), since_id = self.max_id)
-                for tweet in new_results['results']:
-                    tweet['cached_avatar_path'] = self.get_cached_avatar(tweet['from_user'], tweet['profile_image_url'], True)
-                if (not self.enabled):
-                    self.enable()
+                new_results = self.grab_engines.fetch_messages()
             except urllib2.URLError, e:
                 if (self.enabled):
                     self.disable()
@@ -249,11 +208,7 @@ class Twitter2osd:
                 print u"Exception details: " + unicode(e) # DEBUG
 
             
-            if new_results != None:
-                print unicode(len(new_results['results'])) + " new tweets found" # DEBUG
-                
-                self.max_id = new_results["max_id_str"]
-                self.messages_queue.extend(new_results['results']) 
+            self.messages_queue.extend(new_results) 
             return True # run again
         return False # stop running again
 
