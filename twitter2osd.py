@@ -52,7 +52,7 @@ class Twitter2osd:
 
         self.path_cache = tempfile.mkdtemp()+"/"
 
-        self.grab_engines = EnginesManager(self.engines, self.titles)
+        self.grab_engines = EnginesManager(self.engine_names, self.titles, self.configs_per_engine)
         
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 
@@ -92,7 +92,7 @@ class Twitter2osd:
         Create default config file if create_default_file argument passed and there is no config file.
 
         Prameters which will be assign:
-        self.engines
+        self.engine_names
         self.notification_timeout 
         self.show_message_interval
         self.titles 
@@ -128,7 +128,11 @@ class Twitter2osd:
         self.show_message_interval = int(self.configs.get('Main', 'show_message_interval'))
         self.titles = set(self.configs.get('Main', 'titles').split(' '))
         self.debug_mode = int(self.configs.get('Main', 'debug_mode'))
-        self.engines = self.configs.get('Main', 'engines').split(' ')
+        self.engine_names = self.configs.get('Main', 'engines').split(' ')
+        
+        self.configs_per_engine = {}
+        for eng in self.engine_names:
+            self.configs_per_engine[eng] = dict(self.configs.items(eng))
             
         print "Configs:" # DEBUG
         print "\tnotification_timeout = %d"%self.notification_timeout # DEBUG
