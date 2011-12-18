@@ -210,6 +210,8 @@ class Twitter2osd:
             new_results = None
             try:
                 new_results = self.grab_engines.fetch_messages()
+                if (not self.enabled):
+                    self.enable()
             except urllib2.URLError, e:
                 if (self.enabled):
                     self.disable()
