@@ -18,10 +18,8 @@ except ImportError:
             message_format = "Couldn't find pynotify module. Please install it.").run()
     exit(1)
 
-from contextlib import closing
 from ConfigParser import SafeConfigParser, NoOptionError
 
-import json
 import optparse
 import os
 import pipes
@@ -31,7 +29,6 @@ import shutil
 import signal
 import socket
 import sys
-import tempfile
 import time
 import urllib2
 
@@ -51,8 +48,6 @@ class Twitter2osd:
         self.path_base = os.path.abspath(os.path.dirname(__file__)) + '/'
             
         self.take_configs(True)
-
-        self.path_cache = tempfile.mkdtemp()+"/"
 
         self.grab_engines = EnginesManager(self.engine_names, self.titles, self.configs_per_engine)
         
@@ -145,8 +140,9 @@ class Twitter2osd:
     
     def cleanup(self):
         """Remove cache directory and all contents"""
-        if os.path.isdir(self.path_cache):
-            shutil.rmtree(self.path_cache)
+        # TODO: awaiting of implementing cleanup method in EnginesManager
+        # if os.path.isdir(self.path_cache):
+        #     shutil.rmtree(self.path_cache)
         
     def notify_message(self, tweet):
         """Show message with user picture using pynotify module

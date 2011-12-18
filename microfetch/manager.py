@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import engines
 
 class EnginesManager (object):
@@ -5,6 +8,11 @@ class EnginesManager (object):
         self._engines = []
         for eng in engine_names:
             self._engines.append(vars(engines)[unicode(eng)+'Engine'](titles, configs_per_engine.get(eng)))
+            
+        self.path_cache = tempfile.mkdtemp()+"/"
+        self.path_cached_avatars = self.path_cache + "avatars/"
+        if not os.path.isdir(self.path_cached_avatars):
+            os.mkdir(self.path_cached_avatars)
         
     def fetch_messages (self):
         msgs = []
