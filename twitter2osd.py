@@ -37,7 +37,7 @@ from microfetch import EnginesManager
 class Twitter2osd:
     DEFAULT_CONFIGS = {
             'Main':{'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python', 'engines':'Test'},
-            'Test':{'tittles':'testtitle'}}
+            'Test':{}}
     urlFinderRe = re.compile(r"""http://[^ ]*""")
     
     def __init__(self):
