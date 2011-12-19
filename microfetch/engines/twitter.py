@@ -42,7 +42,10 @@ class TwitterEngine (_AbstractEngine):
         #     msgs.append({'created_at':None, 'from_user':'developer', 'text':'test message with key {title}'.format(title = title), 'profile_image_url':None})
         # return msgs
     
-        new_results = self.twitter_search(request = ' OR '.join(self._titles), since_id = self.max_id)
+        request_str = (' OR '.join(self._titles))
+        if (self._exclude_titles):
+            request_str += ' ' + (' '.join(['-' + t for t in self._exclude_titles]))
+        new_results = self.twitter_search(request = request_str, since_id = self.max_id)
 
         
         if new_results != None:

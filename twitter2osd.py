@@ -36,7 +36,7 @@ from microfetch import EnginesManager
 
 class Twitter2osd:
     DEFAULT_CONFIGS = {
-            'Main':{'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python', 'engines':'Test'},
+            'Main':{'show_message_interval':'1000', 'notification_timeout':'1000', 'debug_mode':'0', 'titles':'gtk python', 'exclude_titles':'monty', 'engines':'Test'},
             'Test':{}}
     urlFinderRe = re.compile(r"""http://[^ ]*""")
     
@@ -49,7 +49,7 @@ class Twitter2osd:
             
         self.take_configs(True)
 
-        self.grab_engines = EnginesManager(self.engine_names, self.titles, self.configs_per_engine)
+        self.grab_engines = EnginesManager(self.engine_names, self.titles, self.exclude_titles, self.configs_per_engine)
         
         self.statusicon = gtk.StatusIcon()
         self.statusicon.set_from_file("icon.png") 
@@ -125,6 +125,7 @@ class Twitter2osd:
         self.notification_timeout = int(self.configs.get('Main', 'notification_timeout'))
         self.show_message_interval = int(self.configs.get('Main', 'show_message_interval'))
         self.titles = set(self.configs.get('Main', 'titles').split(' '))
+        self.exclude_titles = set(self.configs.get('Main', 'exclude_titles').split(' '))
         self.debug_mode = int(self.configs.get('Main', 'debug_mode'))
         self.engine_names = self.configs.get('Main', 'engines').split(' ')
         

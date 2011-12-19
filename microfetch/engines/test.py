@@ -11,6 +11,6 @@ class TestEngine (_AbstractEngine):
         """
         msgs = []
         for title in self._titles:
-            msgs.append({'created_at':None, 'from_user':'developer', 'text':'test message with key {title}'.format(title = title), 'profile_image_url':None})
+            msgs.append({'created_at':None, 'from_user':'developer', 'text':'test message with title {title} and exclude titles {exclude_titles}'.format(title = title, exclude_titles = ', '.join(self._exclude_titles)), 'profile_image_url':None})
         return msgs
 
