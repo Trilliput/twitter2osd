@@ -17,5 +17,5 @@ class EnginesManager (object):
     def fetch_messages (self):
         msgs = []
         for eng in self._engines:
-            msgs = eng.fetch_messages()
-        return msgs;
+            msgs.extend(eng.fetch_messages())
+        return msgs
